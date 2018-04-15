@@ -1,139 +1,168 @@
 package com.demo.example.services;
 
-import com.demo.example.AccountTransfers;
-import com.demo.example.utils.CheckUtils;
 import com.demo.example.dao.AbstractDao;
 import com.demo.example.dao.TransferDao;
 import com.demo.example.dto.TransferDto;
 import com.demo.example.entities.Account;
+import com.demo.example.entities.AccountTransfers;
 import com.demo.example.entities.Transfer;
 import com.demo.example.exception.AppException;
+import com.demo.example.utils.CheckUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.StaleObjectStateException;
-import org.modelmapper.ModelMapper;
-import org.modelmapper.convention.MatchingStrategies;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import static com.demo.example.utils.CheckUtils.checkAccountBalance;
-import static com.demo.example.utils.CheckUtils.checkTransfer;
-import static com.demo.example.services.SessionUtil.close;
-import static com.demo.example.services.SessionUtil.open;
+import static com.demo.example.utils.CheckUtils.*;
 
+/**
+ * The type Transfer service.
+ */
 public class TransferService {
 
     private AbstractDao<Transfer, UUID> transferDao;
 
     private AbstractDao<Account, UUID> accountDao;
 
-    private ModelMapper modelMapper;
+    private GenericService<Transfer, UUID> genericService;
+
+    private SessionService sessionService;
 
     private final Logger logger = LogManager.getLogger(TransferService.class);
 
+    /**
+     * Instantiates a new Transfer service.
+     *
+     * @param transferDao the transfer dao
+     * @param accountDao  the account dao
+     */
     public TransferService(AbstractDao<Transfer, UUID> transferDao, AbstractDao<Account, UUID> accountDao) {
         this.transferDao = transferDao;
         this.accountDao = accountDao;
-        modelMapper = new ModelMapper();
-        modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STANDARD);
+        sessionService = new SessionService();
+        genericService = new GenericServiceImpl<>(transferDao, sessionService);
     }
 
+    /**
+     * Create transfer transfer.
+     *
+     * @param transfer the transfer
+     * @return the transfer
+     * @throws AppException the app exception
+     */
     public Transfer createTransfer(TransferDto transfer) throws AppException {
+        Transfer result;
         logger.trace("Transfer preparation...");
         checkTransfer(transfer);
         logger.trace("Transfer's data is checked.");
-        Transfer transferDB = modelMapper.map(transfer, Transfer.class);
-        transferDB.setAccountFrom(UUID.fromString(transfer.getAccountFrom()));
-        transferDB.setAccountTo(UUID.fromString(transfer.getAccountTo()));
-        Account accountFrom;
-        Account accountTo;
-        checkTransferAccounts(transfer);
-
         while (true) {
             try {
-                open(accountDao);
-                accountFrom = accountDao.find(transferDB.getAccountFrom());
-                accountTo = accountDao.find(transferDB.getAccountTo());
-                checkAccountBalance(transferDB, accountFrom);
+                sessionService.setSessionForDao(accountDao);
+                Transfer transferWithAccounts = checkTransferAccounts(transfer);
+                Account accountFrom = transferWithAccounts.getAccountFrom();
+                Account accountTo = transferWithAccounts.getAccountTo();
+
+                checkAccountBalance(transfer.getBalance(), accountFrom);
                 accountFrom.setBalance(accountFrom.getBalance().subtract(transfer.getBalance()));
                 accountTo.setBalance(accountTo.getBalance().add(transfer.getBalance()));
-                close();
-                open(accountDao);
-                transferDao.setCurrentSession(SessionUtil.getSession());
-                SessionUtil.beginTransaction();
-                accountDao.update(accountFrom);
-                accountDao.update(accountTo);
-                SessionUtil.commitTransaction();
-                SessionUtil.beginTransaction();
-                transferDao.add(transferDB);
-                SessionUtil.commitTransaction();
+                result = doTransfer(transferWithAccounts, accountFrom, accountTo);
                 break;
             } catch (StaleObjectStateException e) {
-                SessionUtil.rollbackTransaction();
+                sessionService.rollback();
             } catch (AppException e) {
                 throw e;
             } catch (Exception e) {
-                SessionUtil.rollbackTransaction();
+                sessionService.rollback();
                 throw e;
             } finally {
-                SessionUtil.closeSession();
+                sessionService.closeSession();
             }
         }
+        return result;
+    }
+
+    private Transfer doTransfer(Transfer transferWithAccounts, Account accountFrom, Account accountTo) {
+        sessionService.begin(transferDao);
+        accountDao.update(accountFrom);
+        accountDao.update(accountTo);
+        Transfer result = transferDao.add(transferWithAccounts);
+        sessionService.commit();
+        return result;
+    }
+
+    private Transfer checkTransferAccounts(TransferDto transfer) throws AppException {
+        Account accountFrom = accountDao.find(UUID.fromString(transfer.getAccountFrom()));
+        CheckUtils.checkifObjectExists(transfer.getAccountFrom(), accountFrom);
+        Account accountTo = accountDao.find(UUID.fromString(transfer.getAccountTo()));
+        CheckUtils.checkifObjectExists(transfer.getAccountTo(), accountTo);
+        Transfer transferDB = new Transfer();
+        transferDB.setAccountFrom(accountFrom);
+        transferDB.setAccountTo(accountTo);
+        transferDB.setBalance(transfer.getBalance());
         return transferDB;
+
     }
 
-    private void checkTransferAccounts(TransferDto transfer) throws AppException {
-        Account accountFrom;
-        Account accountTo;
+    /**
+     * Gets list of transfers.
+     *
+     * @return the list of transfers
+     */
+    public List<Transfer> getListOfTransfers() {
         try {
-            open(accountDao);
-            accountFrom = accountDao.find(UUID.fromString(transfer.getAccountFrom()));
-            CheckUtils.checkifAccountExists(transfer.getAccountFrom(), accountFrom);
-            accountTo = accountDao.find(UUID.fromString(transfer.getAccountTo()));
-            CheckUtils.checkifAccountExists(transfer.getAccountTo(), accountTo);
+            sessionService.setSessionForDao(transferDao);
+            List<Transfer> transferList = transferDao.list();
+            logger.info(String.format("%d transfers are found", transferList.size()));
+            return transferList;
         } finally {
-            close();
+            sessionService.close();
         }
+
     }
 
-    public List<TransferDto> getListOfTransfers() {
-        open(transferDao);
-        List<Transfer> transferList = transferDao.list();
-        List<TransferDto> transferDtoList = transferList.parallelStream().map(this::getTransferDto).collect(Collectors.toList());
-        logger.info(String.format("%d transfers are found", transferList.size()));
-        close();
-        return transferDtoList;
-    }
-
-
-    private TransferDto getTransferDto(Transfer result) {
-        return modelMapper.map(result, TransferDto.class);
-    }
-
-    private Transfer getTransfer(TransferDto transferDto) {
-        return modelMapper.map(transferDto, Transfer.class);
-    }
-
-    public AccountTransfers getListOfTransfersforAccount(UUID uuid) {
+    /**
+     * Gets list of transfers for account.
+     *
+     * @param uuid the uuid
+     * @return the list of transfers for account
+     * @throws AppException the app exception
+     */
+    public AccountTransfers getListOfTransfersForAccount(UUID uuid) throws AppException {
         AccountTransfers accountTransfers = new AccountTransfers();
         try {
-            open(transferDao);
-            List<TransferDto> outgoingTransfers = ((TransferDao) transferDao).findByAccountFrom(uuid).stream().map(this::getTransferDto).collect(Collectors.toList());
-            logger.trace(String.format("For account %1$s %2$s outgoing transfers were found",uuid.toString(),outgoingTransfers.size()));
+            checkAccount(uuid);
+/*            sessionService.openSession();*/
+            sessionService.setSessionForDao(transferDao);
+            List<Transfer> outgoingTransfers = ((TransferDao) transferDao).findByAccountFrom(uuid);
+            logger.trace(String.format("For account %1$s %2$s outgoing transfers were found", uuid.toString(), outgoingTransfers.size()));
             accountTransfers.setOutgoingTransfers(outgoingTransfers);
-            List<TransferDto> ingoingTransfers = ((TransferDao) transferDao).findByAccountTo(uuid).stream().map(this::getTransferDto).collect(Collectors.toList());
+            List<Transfer> ingoingTransfers = ((TransferDao) transferDao).findByAccountTo(uuid);
             accountTransfers.setIngoingTransfers(ingoingTransfers);
-            logger.trace(String.format("For account %1$s %2$s ingoing transfers were found",uuid.toString(),ingoingTransfers.size()));
+            logger.trace(String.format("For account %1$s %2$s ingoing transfers were found", uuid.toString(), ingoingTransfers.size()));
             return accountTransfers;
         } finally {
-            close();
+            sessionService.close();
         }
     }
 
+    private void checkAccount(UUID uuid) throws AppException {
+        accountDao.setCurrentSession(sessionService.getSession());
+        checkifObjectExists(uuid.toString(),accountDao.find(uuid));
+    }
 
-    public TransferDto getTransferByUuid(UUID uuid) {
-        return getTransferDto(transferDao.find(uuid));
+
+    /**
+     * Gets transfer by uuid.
+     *
+     * @param uuid the uuid
+     * @return the transfer by uuid
+     * @throws AppException the app exception
+     */
+    public Transfer getTransferByUuid(UUID uuid) throws AppException {
+        Transfer account = genericService.getEntity(uuid);
+        logger.info(String.format("transfer with UUID =$1%s is found in database", uuid));
+        return account;
     }
 }

@@ -1,37 +1,33 @@
 package com.demo.example.services;
 
 import com.demo.example.dao.AbstractDao;
-import com.demo.example.dto.AccountDto;
+import com.demo.example.dao.AccountDaoImpl;
 import com.demo.example.entities.Account;
 import com.demo.example.exception.AppException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.modelmapper.ModelMapper;
 
 import java.math.BigDecimal;
+import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import static com.demo.example.utils.CheckUtils.checkifAccountExists;
-import static com.demo.example.services.SessionUtil.*;
+import static com.demo.example.utils.CheckUtils.checkifObjectExists;
 
 /**
  * The type AccountDto service.
  */
 public class AccountService {
 
-    /**
-     * The Abstract dao.
-     */
+    private GenericService<Account, UUID> genericService;
+
     private AbstractDao<Account, UUID> abstractDAO;
 
-    private ModelMapper modelMapper;
+    private SessionService sessionService;
 
-
-    private final Logger logger = LogManager.getLogger(AccountService .class);
+    private final Logger logger = LogManager.getLogger(AccountService.class);
 
     /**
      * Instantiates a new AccountDto service.
@@ -40,7 +36,9 @@ public class AccountService {
      */
     public AccountService(AbstractDao<Account, UUID> accountDAO) {
         this.abstractDAO = accountDAO;
-        modelMapper = new ModelMapper();
+        sessionService = new SessionService();
+        genericService = new GenericServiceImpl<>(accountDAO, sessionService);
+
     }
 
     /**
@@ -49,20 +47,10 @@ public class AccountService {
      * @param account the account
      * @return the account
      */
-    public AccountDto saveAccount(AccountDto account) {
-        Account accountEntity = getAccount(account);
-        try {
-            begin(abstractDAO);
-            Account result = abstractDAO.add(accountEntity);
-            commit();
-            logger.info(String.format("New account with UUID =$1%s is created", result.getId()));
-            return getAccountDto(result);
-        } catch (Exception e) {
-            rollback();
-            throw e;
-        } finally {
-            close();
-        }
+    public Account saveAccount(Account account) {
+        Account result = genericService.saveEntity(account);
+        logger.info(String.format("New entity with UUID = %1$s is created", result.getId()));
+        return result;
     }
 
 
@@ -73,44 +61,38 @@ public class AccountService {
      * @return the account
      * @throws AppException the app exception
      */
-    public AccountDto getAccount(UUID id) throws AppException {
-        try {
-            open(abstractDAO);
-            Account result = abstractDAO.find(id);
-            checkifAccountExists(id.toString(), result);
-            logger.info(String.format("New account with UUID =$1%s is found in database", result.getId()));
-            return getAccountDto(result);
-        } finally {
-            close();
-        }
+    public Account getAccount(UUID id) throws AppException {
+        Account account = genericService.getEntity(id);
+        logger.info(String.format("New account with UUID =$1%s is found in database", account.getId()));
+        return account;
     }
 
 
     /**
      * Update account.
      *
-     * @param newAccount the new account
-     * @param id         the id
+     * @param account the account
+     * @param id      the id
      * @throws AppException the app exception
      */
-    public void updateAccount(AccountDto newAccount, UUID id) throws AppException {
+    public void updateAccount(Account account, UUID id) throws AppException {
         try {
-            begin(abstractDAO);
-            Account accountFodDB = getAccount(newAccount, id);
+            sessionService.begin(abstractDAO);
+            Account accountFodDB = getAccount(account, id);
             abstractDAO.update(accountFodDB);
-            commit();
-            logger.info(String.format("Account with UUID =$1%s is successfully updated ", id));
+            sessionService.commit();
+            logger.info(String.format("Account with UUID = %1$s is successfully updated ", id));
         } finally {
-            close();
+            sessionService.close();
         }
     }
 
-    private Account getAccount(AccountDto newAccount, UUID id) throws AppException {
+    private Account getAccount(Account account, UUID id) throws AppException {
         Account currentAccount = abstractDAO.find(id);
-        checkifAccountExists(id.toString(), currentAccount);
-        String accountName = Objects.isNull(newAccount.getAccountName()) ? currentAccount.getAccountName() : newAccount.getAccountName();
-        String email = Objects.isNull(newAccount.getEmail()) ? currentAccount.getEmail() : newAccount.getEmail();
-        BigDecimal balance = Objects.isNull(newAccount.getBalance()) ? currentAccount.getBalance() : newAccount.getBalance();
+        checkifObjectExists(id.toString(), currentAccount);
+        String accountName = Objects.isNull(account.getAccountName()) ? currentAccount.getAccountName() : account.getAccountName();
+        String email = Objects.isNull(account.getEmail()) ? currentAccount.getEmail() : account.getEmail();
+        BigDecimal balance = Objects.isNull(account.getBalance()) ? currentAccount.getBalance() : account.getBalance();
         currentAccount.setAccountName(accountName);
         currentAccount.setBalance(balance);
         currentAccount.setEmail(email);
@@ -126,32 +108,40 @@ public class AccountService {
      * @throws AppException the app exception
      */
     public void deleteAccount(UUID id) throws AppException {
+        genericService.deleteEntity(id);
+        logger.info(String.format("Account with UUID =$1%s is successfully deleted ", id));
+    }
+
+
+    /**
+     * Gets list of accounts.
+     *
+     * @param email     the email
+     * @param account   the account
+     * @param startDate the start date
+     * @param endDate   the end date
+     * @return the list of accounts
+     * @throws ParseException the parse exception
+     */
+    public List<Account> getListOfAccounts(String email, String account, String startDate, String endDate) throws ParseException {
+        List<Account> accountList;
+        if (Objects.isNull(email) && Objects.isNull(account) && Objects.isNull(startDate) &&Objects.isNull(endDate)) {
+            accountList = genericService.getlistOfEntities();
+        } else {
+            accountList = getAccountByParameters(email,account,startDate,endDate);
+        }
+        logger.info(String.format("%d accounts are found", accountList.size()));
+        return accountList;
+    }
+
+    private List<Account> getAccountByParameters(String email, String account, String startDate, String endDate) throws ParseException {
         try {
-            AccountDto account = getAccount(id);
-            begin(abstractDAO);
-            abstractDAO.remove(getAccount(account));
-            commit();
-            logger.info(String.format("Account with UUID =$1%s is successfully deleted ", id));
+            sessionService.setSessionForDao(abstractDAO);
+            List<Account> accountList = ((AccountDaoImpl) abstractDAO).getAccountByParameters(email,account,startDate,endDate);
+            return accountList;
         } finally {
-            close();
+            sessionService.close();
         }
     }
 
-
-    private AccountDto getAccountDto(Account result) {
-        return modelMapper.map(result, AccountDto.class);
-    }
-
-    private Account getAccount(AccountDto account) {
-        return modelMapper.map(account, Account.class);
-    }
-
-    public List<AccountDto> getListOfAccounts() {
-        open(abstractDAO);
-        List<Account> accountList = abstractDAO.list();
-        List<AccountDto> result = accountList.parallelStream().map(this::getAccountDto).collect(Collectors.toList());
-        logger.info(String.format("%d accounts are found", result.size()));
-        close();
-        return result;
-    }
 }

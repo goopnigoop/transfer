@@ -11,16 +11,28 @@ import java.util.UUID;
  */
 public class TransferDao extends AbstractDao<Transfer, UUID> {
 
-    public List<Transfer> findByAccountFrom(UUID uuid) {
+    /**
+     * Find by account from list.
+     *
+     * @param uuid the uuid
+     * @return the list
+     */
+    public List findByAccountFrom(UUID uuid) {
         Query employeeTaskQuery = currentSession.createQuery(
-                "from Transfer u where accountfrom=:accountFrom");
+                "from Transfer u where account_from=:accountFrom");
         employeeTaskQuery.setParameter("accountFrom", uuid);
         return employeeTaskQuery.list();
     }
 
-    public List<Transfer> findByAccountTo(UUID uuid) {
+    /**
+     * Find by account to list.
+     *
+     * @param uuid the uuid
+     * @return the list
+     */
+    public List findByAccountTo(UUID uuid) {
         Query employeeTaskQuery = currentSession.createQuery(
-                "from Transfer u where accountto=:accountTo");
+                "from Transfer u where account_to=:accountTo");
         employeeTaskQuery.setParameter("accountTo", uuid);
         return employeeTaskQuery.list();
 

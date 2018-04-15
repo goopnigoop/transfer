@@ -28,7 +28,7 @@ public class ExceptionHandler {
             throw new AppException(500, 402, "Duplicate field in request", ExceptionMessages.getErrorMessage((org.hibernate.exception.ConstraintViolationException) e));
         } else {
             logger.error(e.getMessage());
-            throw new AppException(500, 101, ExceptionMessages.getErrorMessage(e), e.toString());
+            throw new AppException(500, 101, ExceptionMessages.getErrorMessage(), e.toString());
         }
     }
 }

@@ -1,12 +1,11 @@
 package com.demo.example.dao;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
 
 import java.io.Serializable;
-import java.lang.reflect.ParameterizedType;
 import java.util.List;
+
+import static com.demo.example.utils.GenericUtils.getGenericParameterClass;
 
 
 /**
@@ -17,14 +16,17 @@ import java.util.List;
  */
 public abstract class AbstractDao<E, K extends Serializable> implements GenericDao<E,K> {
 
-    protected Session currentSession;
+    /**
+     * The Current session.
+     */
+    Session currentSession;
     private Class<E> currentclass;
 
     /**
      * Instantiates a new Abstract dao.
      */
     AbstractDao() {
-        currentclass = (Class<E>) ((ParameterizedType)getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+        currentclass = getGenericParameterClass(this.getClass(),0);
     }
 
 

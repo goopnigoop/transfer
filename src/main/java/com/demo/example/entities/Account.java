@@ -8,6 +8,8 @@ import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -36,6 +38,27 @@ public class Account {
     @Column(name = "balance")
     private BigDecimal balance;
 
+    @OneToMany(mappedBy = "accountFrom", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Transfer> transfersFrom;
+
+    public Set<Transfer> getTransfers() {
+        return transfersFrom;
+    }
+
+    public void setTransfers(Set<Transfer> transfers) {
+        this.transfersFrom = transfers;
+    }
+
+    @OneToMany(mappedBy = "accountTo", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Transfer> transfersTo;
+
+    public Set<Transfer> getTransfersTo() {
+        return transfersTo;
+    }
+
+    public void setTransfersTo(Set<Transfer> transfersTo) {
+        this.transfersTo = transfersTo;
+    }
 
     @Column(name = "created")
     @Temporal(TemporalType.TIMESTAMP)
