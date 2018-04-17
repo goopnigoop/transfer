@@ -23,7 +23,7 @@ public class AccountResourceTest extends BaseTest {
 
     @Override
     protected Application configure() {
-        return new ResourceConfig(AccountResource.class,AppExceptionMapper.class);
+        return new ResourceConfig(AccountResource.class, AppExceptionMapper.class);
     }
 
     @Override
@@ -68,7 +68,7 @@ public class AccountResourceTest extends BaseTest {
     }
 
     @Test
-    public void testCreateAccountWrongEmail() {
+    public void testCreateAccountWrongEmailFailed() {
         AccountDto accountDto = new AccountDto();
         accountDto.setEmail("wrong");
         accountDto.setAccountName("account");
@@ -87,29 +87,29 @@ public class AccountResourceTest extends BaseTest {
                 .get("/account")
                 .then()
                 .statusCode(200)
-                .body("get(0).accountName",equalTo(accountDto.getAccountName()));
+                .body("get(0).accountName", equalTo(accountDto.getAccountName()));
     }
 
     @Test
-    public void testGetAccountByWrongId() {
+    public void testGetAccountByWrongIdFailed() {
         given().contentType(ContentType.JSON)
-                .pathParam("id",UUID.randomUUID())
+                .pathParam("id", UUID.randomUUID())
                 .when()
                 .get("/account/{id}")
                 .then()
                 .statusCode(404)
-                .body("message",equalTo("Entry is not found"));
+                .body("message", equalTo("Entry is not found"));
     }
 
     @Test
     public void testGetAccountById() {
         given().contentType(ContentType.JSON)
-                .pathParam("id",UUID.fromString(id))
+                .pathParam("id", UUID.fromString(id))
                 .when()
                 .get("/account/{id}")
                 .then()
                 .statusCode(200)
-                .body("accountName",equalTo(accountDto.getAccountName()));
+                .body("accountName", equalTo(accountDto.getAccountName()));
     }
 
     @Test
@@ -125,24 +125,34 @@ public class AccountResourceTest extends BaseTest {
     }
 
     @Test
+    public void testGetListOfAccounts() {
+        given().contentType(ContentType.JSON)
+                .when()
+                .get("/account")
+                .then()
+                .statusCode(200)
+                .body("size()", greaterThan(1));
+    }
+
+    @Test
     public void testUpdateAccount() {
         accountDto.setBalance(new BigDecimal(10000));
         accountDto.setAccountName("new");
         accountDto.setEmail("new@email.com");
         given().contentType(ContentType.JSON)
-                .pathParam("id",UUID.fromString(id))
+                .pathParam("id", UUID.fromString(id))
                 .body(accountDto)
                 .put("/account/{id}")
                 .then()
                 .statusCode(204).and();
 
         given().contentType(ContentType.JSON)
-                .pathParam("id",UUID.fromString(id))
+                .pathParam("id", UUID.fromString(id))
                 .get("/account/{id}")
                 .then()
                 .statusCode(200)
-                .body("email",is("new@email.com"))
-                .body("accountName",is("new"));
+                .body("email", is("new@email.com"))
+                .body("accountName", is("new"));
     }
 
     @Test
@@ -156,19 +166,36 @@ public class AccountResourceTest extends BaseTest {
                 .body(accountDto).post("/account").then().statusCode(201).extract().jsonPath().getString("id");
 
         given().contentType(ContentType.JSON)
-                .pathParam("id",UUID.fromString(id))
+                .pathParam("id", UUID.fromString(id))
                 .delete("/account/{id}")
                 .then()
                 .statusCode(204);
 
         given().contentType(ContentType.JSON)
-                .pathParam("id",UUID.fromString(id))
+                .pathParam("id", UUID.fromString(id))
                 .when()
                 .get("/account/{id}")
                 .then()
                 .statusCode(404)
-                .body("message",equalTo("Entry is not found"));
-
+                .body("message", equalTo("Entry is not found"));
     }
 
+    @Test
+    public void testDeleteNotExistingAccountFailed() {
+        given().contentType(ContentType.JSON)
+                .pathParam("id", UUID.randomUUID())
+                .delete("/account/{id}")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testUpdateNotExistingAccountFailed() {
+        given().contentType(ContentType.JSON)
+                .pathParam("id", UUID.randomUUID())
+                .body(accountDto)
+                .put("/account/{id}")
+                .then()
+                .statusCode(404);
+    }
 }
