@@ -34,7 +34,7 @@ public class CheckUtils {
      */
     public static void checkAccountBalance(BigDecimal transfer, Account accountFrom) throws AppException {
         if (accountFrom.getBalance().compareTo(transfer) < 0)
-            throw new AppException(409, 302, "Transfer is impossible", String.format("AccountDto %s hasn't enough money for transfer operation",accountFrom.getId()));
+            throw new AppException(409, 307, "Transfer is impossible", String.format("AccountDto %s hasn't enough money for transfer operation",accountFrom.getId()));
     }
 
 
@@ -46,19 +46,19 @@ public class CheckUtils {
      */
     public static void checkTransfer(TransferDto transfer) throws AppException {
         if (Objects.isNull(transfer.getBalance())) {
-            throw new AppException(409, 303, "Transfer is impossible", "Transfer amount in transfer isn't set up");
+            throw new AppException(409, 301, "Transfer is impossible", "Transfer amount in transfer isn't set up");
         }
         if (Objects.isNull(transfer.getAccountFrom())) {
-            throw new AppException(409, 303, "Transfer is impossible", "Field accountFrom must be set up");
+            throw new AppException(409, 302, "Transfer is impossible", "Field accountFrom must be set up");
         }
         if (transfer.getBalance().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new AppException(409, 304, "Transfer is impossible", "Transfer amount must be greater than 0");
+            throw new AppException(409, 303, "Transfer is impossible", "Transfer amount must be greater than 0");
         }
         if (transfer.getAccountFrom().equals(transfer.getAccountTo())) {
             throw new AppException(409, 304, "Transfer is impossible", "Account from and accountTo must be different");
         }
         if (Objects.isNull(transfer.getAccountTo())) {
-            throw new AppException(409, 303, "Transfer is impossible", "Field accountTo must be set up");
+            throw new AppException(409, 305, "Transfer is impossible", "Field accountTo must be set up");
         }
     }
 

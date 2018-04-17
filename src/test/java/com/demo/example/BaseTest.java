@@ -16,7 +16,7 @@ public class BaseTest extends JerseyTest {
 
 
     @BeforeClass
-    public static void configureRestAssured() throws Exception
+    public static void configureRestAssured()
     {
         RestAssured.port = TEST_PORT;
         RestAssured.baseURI = TEST_URL;

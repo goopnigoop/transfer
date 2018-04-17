@@ -63,7 +63,7 @@ public class AccountService {
      */
     public Account getAccount(UUID id) throws AppException {
         Account account = genericService.getEntity(id);
-        logger.info(String.format("New account with UUID =$1%s is found in database", account.getId()));
+        logger.info(String.format("Account with UUID = %1$s is found in database", account.getId()));
         return account;
     }
 
@@ -109,7 +109,7 @@ public class AccountService {
      */
     public void deleteAccount(UUID id) throws AppException {
         genericService.deleteEntity(id);
-        logger.info(String.format("Account with UUID =$1%s is successfully deleted ", id));
+        logger.info(String.format("Account with UUID = %1$s is successfully deleted ", id));
     }
 
 
