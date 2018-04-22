@@ -74,6 +74,7 @@ After account creation it's possible to perform transfer.
 `POST`: create transfer.
 
  - Fields accountFrom, accountTo, balance are mandatory.
+ 
 ######example:
 
     {
