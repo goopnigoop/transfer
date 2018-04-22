@@ -31,61 +31,6 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
-      <!--      <plugin>
-                <groupId>org.apache.tomcat.maven</groupId>
-                <artifactId>tomcat7-maven-plugin</artifactId>
-                <version>2.2</version>
-                <configuration>
-                    <port>8074</port>
-                    <path>src/main/webapp</path>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>tomcat-run</id>
-                        <goals>
-                            <goal>exec-war-only</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <path>com.demo.example</path>
-                            <attachArtifactClassifierType>war</attachArtifactClassifierType>
-                            <mainClass>Main</mainClass>
-                            <extraDependencies>
-                                <extraDependency>
-                                    <groupId>com.nitorcreations</groupId>
-                                    <artifactId>tomcat8-war-runner</artifactId>
-                                    <version>1.0</version>
-                                </extraDependency>
-                            </extraDependencies>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>-->
-<!--
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <finalName>tomcat-microservices-app-${project.version}</finalName>
-                    <archive>
-                        <manifest>
-                            <mainClass>com.demo.example.Main</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
