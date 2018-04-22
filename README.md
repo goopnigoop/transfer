@@ -5,7 +5,7 @@ The communication is done via HTTP using REST-based architecture.
 Application has own database schema in H2 database for accounts and transfers.
  
 ##Technologies
-Application is written in Java language and folowing libraries and frameworks are used to improve the development process:
+Application is written in Java language and following libraries and frameworks are used to improve the development process:
 - Jersey(https://jersey.github.io/): Jersey frameworks
 - Hibernate (http://hibernate.org/): Hibernate framework
 - JUnit(https://junit.org/): Test framework
@@ -17,7 +17,7 @@ Application is written in Java language and folowing libraries and frameworks ar
  
 ##Setup a local development environment
 It is a Maven project, you can simply open it via Eclipse or IDEA, configure start of application. By starting this application you automatically
-start embedded tomcat server on port 8074. 
+start embedded tomcat server on port 8075. 
 
 ###To build component run:
     mvn clean package
@@ -29,14 +29,16 @@ in web.xml possible to set application source URI, by default is "webapi"
     
 
 ## Component flow
-To start transfer processing firstly application has to have accounts.
-After account creation it's possible to perform transfer
+To start transfer processing firstly application should to have accounts.
+After account creation it's possible to perform transfer.
 
 ## resource operations
 ###ACCOUNT
 ####/webapi/account:
 `POST`: create account.
+
  - Fields accountName and email are unique and mandatory, if there is not field balance account will have balance = 0;
+ 
 ######example:
 
      {
@@ -66,9 +68,11 @@ After account creation it's possible to perform transfer
 `DELETE`: delete account by uuid
 
 ###TRANSFER
+
 ####/webapi/transfer:
 
 `POST`: create transfer.
+
  - Fields accountFrom, accountTo, balance are mandatory.
 ######example:
 
