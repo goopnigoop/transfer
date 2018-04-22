@@ -5,7 +5,7 @@ The communication is done via HTTP using REST-based architecture.
 Application has own database schema in H2 database for accounts and transfers.
  
 ##Technologies
-Application is written in Java language and following libraries and frameworks are used to improve the development process:
+Application is written in Java language (Java 8) and following libraries and frameworks are used to improve the development process:
 - Jersey(https://jersey.github.io/): Jersey frameworks
 - Hibernate (http://hibernate.org/): Hibernate framework
 - JUnit(https://junit.org/): Test framework
