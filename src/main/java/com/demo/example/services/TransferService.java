@@ -11,6 +11,7 @@ import com.demo.example.utils.CheckUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.StaleObjectStateException;
+import org.hibernate.dialect.lock.OptimisticEntityLockException;
 
 import java.util.List;
 import java.util.UUID;
@@ -69,7 +70,7 @@ public class TransferService {
                 accountTo.setBalance(accountTo.getBalance().add(transfer.getBalance()));
                 result = doTransfer(transferWithAccounts, accountFrom, accountTo);
                 break;
-            } catch (StaleObjectStateException e) {
+            } catch (StaleObjectStateException|OptimisticEntityLockException e) {
                 sessionService.rollback();
             } catch (AppException e) {
                 throw e;
