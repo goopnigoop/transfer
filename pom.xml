@@ -10,7 +10,16 @@
     <name>TransferApp</name>
 
     <build>
-        <finalName>TransferApp</finalName>
+
+        <finalName>TransferApp</finalName><resources>
+        <resource>
+            <directory>webapp</directory>
+            <targetPath>META-INF/resources</targetPath>
+        </resource>
+        <resource>
+            <directory>src/main/resources</directory></resource>
+    </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -22,28 +31,96 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>appassembler-maven-plugin</artifactId>
-                <version>2.0.0</version>
+      <!--      <plugin>
+                <groupId>org.apache.tomcat.maven</groupId>
+                <artifactId>tomcat7-maven-plugin</artifactId>
+                <version>2.2</version>
                 <configuration>
-                    <assembleDirectory>target</assembleDirectory>
-                    <programs>
-                        <program>
-                            <mainClass>launch.Main</mainClass>
-                            <name>webapp</name>
-                        </program>
-                    </programs>
+                    <port>8074</port>
+                    <path>src/main/webapp</path>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>tomcat-run</id>
+                        <goals>
+                            <goal>exec-war-only</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <path>com.demo.example</path>
+                            <attachArtifactClassifierType>war</attachArtifactClassifierType>
+                            <mainClass>Main</mainClass>
+                            <extraDependencies>
+                                <extraDependency>
+                                    <groupId>com.nitorcreations</groupId>
+                                    <artifactId>tomcat8-war-runner</artifactId>
+                                    <version>1.0</version>
+                                </extraDependency>
+                            </extraDependencies>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>-->
+<!--
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <finalName>tomcat-microservices-app-${project.version}</finalName>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.demo.example.Main</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.3</version>
+                <configuration>
+                    <createDependencyReducedPom>true</createDependencyReducedPom>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
                 </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>
                         <goals>
-                            <goal>assemble</goal>
+                            <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.demo.example.Main</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
+
         </plugins>
     </build>
 
@@ -52,7 +129,7 @@
             <dependency>
                 <groupId>org.glassfish.jersey</groupId>
                 <artifactId>jersey-bom</artifactId>
-                <version>${jersey.version}</version>
+                <version>2.7</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -155,6 +232,7 @@
             <artifactId>jersey-test-framework-provider-grizzly2</artifactId>
             <version>2.7</version>
         </dependency>
+
         <dependency>
             <groupId>org.glassfish.jersey.test-framework</groupId>
             <artifactId>jersey-test-framework-core</artifactId>

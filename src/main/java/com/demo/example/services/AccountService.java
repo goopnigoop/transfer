@@ -48,6 +48,7 @@ public class AccountService {
      * @return the account
      */
     public Account saveAccount(Account account) {
+        if(account.getBalance()==null) account.setBalance(BigDecimal.ZERO);
         Account result = genericService.saveEntity(account);
         logger.info(String.format("New entity with UUID = %1$s is created", result.getId()));
         return result;
